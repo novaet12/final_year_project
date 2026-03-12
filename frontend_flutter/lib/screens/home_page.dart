@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'chat_page.dart';
-import 'settings_page.dart'; // Make sure this import exists
+import 'settings_page.dart';
+import 'session_page.dart';
+import 'forum_page.dart';
 
 class HomePage extends StatelessWidget {
   final Function(bool) onThemeChanged;
@@ -44,10 +46,15 @@ class HomePage extends StatelessWidget {
                    },
                    ),
                   _menuCard(
-                    icon: Icons.video_camera_front_outlined,
-                    label: "Session",
-                    onTap: () => menuTapped("Session"),
-                  ),
+  icon: Icons.video_camera_front_outlined,
+  label: "Session",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SessionPage()),
+    );
+  },
+),
                   _menuCard(
                     icon: Icons.settings_outlined,
                     label: "Setting",
@@ -64,10 +71,15 @@ class HomePage extends StatelessWidget {
                     },
                   ),
                   _menuCard(
-                    icon: Icons.forum_outlined,
-                    label: "Forum",
-                    onTap: () => menuTapped("Forum"),
-                  ),
+  icon: Icons.forum_outlined,
+  label: "Forum",
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ForumPage()),
+    );
+  },
+),
                 ],
               ),
             ),
