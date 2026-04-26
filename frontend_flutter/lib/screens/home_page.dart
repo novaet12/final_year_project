@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Your Page Imports
 import 'chat_page.dart';
 import 'settings_page.dart';
 import 'session_page.dart';
 import 'forum_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final Function(bool) onThemeChanged;
   final bool isDarkMode;
 
@@ -14,8 +17,38 @@ class HomePage extends StatelessWidget {
     required this.isDarkMode,
   });
 
-  void menuTapped(String name) {
-    debugPrint("$name tapped");
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _supabase = Supabase.instance.client;
+  
+  Map<String, dynamic>? _dailyQuote;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupDailyQuotes();
+  }
+
+  // Simplified: Just fetch the quote for the UI
+  Future<void> _setupDailyQuotes() async {
+    try {
+      final List<dynamic> allQuotes = await _supabase.from('quotes').select();
+      
+      if (allQuotes.isNotEmpty) {
+        allQuotes.shuffle();
+        setState(() {
+          _dailyQuote = allQuotes[0];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Supabase Error: $e");
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -36,50 +69,33 @@ class HomePage extends StatelessWidget {
                 crossAxisSpacing: 18,
                 children: [
                   _menuCard(
-                   icon: Icons.chat_bubble_outline,
-                   label: "Chat",
-                   onTap: () {
-                   Navigator.push(
-                   context,
-                   MaterialPageRoute(builder: (context) => const ChatPage()),
-                   );
-                   },
-                   ),
+                    icon: Icons.chat_bubble_outline,
+                    label: "Chat",
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatPage())),
+                  ),
                   _menuCard(
-  icon: Icons.video_camera_front_outlined,
-  label: "Session",
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SessionPage()),
-    );
-  },
-),
+                    icon: Icons.video_camera_front_outlined,
+                    label: "Session",
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SessionPage())),
+                  ),
                   _menuCard(
                     icon: Icons.settings_outlined,
                     label: "Setting",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SettingsPage(
-                            onThemeChanged: onThemeChanged,
-                            isDarkMode: isDarkMode,
-                          ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SettingsPage(
+                          onThemeChanged: widget.onThemeChanged,
+                          isDarkMode: widget.isDarkMode,
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
                   _menuCard(
-  icon: Icons.forum_outlined,
-  label: "Forum",
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ForumPage()),
-    );
-  },
-),
+                    icon: Icons.forum_outlined,
+                    label: "Forum",
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ForumPage())),
+                  ),
                 ],
               ),
             ),
@@ -91,14 +107,13 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  // Helper Widgets
   Widget _menuCard({required IconData icon, required String label, required VoidCallback onTap}) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Card(
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -118,16 +133,21 @@ class HomePage extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Quote of the Day", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
-            Text('"New beginnings are often disguised as painful endings."', style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic)),
-            SizedBox(height: 8),
-            Text("— Lao Tzu", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          ],
-        ),
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Quote of the Day", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Text(
+                  '"${_dailyQuote?['content'] ?? "Peace begins with a smile."}"',
+                  style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 8),
+                Text("— ${_dailyQuote?['author'] ?? "Unknown"}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            ),
       ),
     );
   }

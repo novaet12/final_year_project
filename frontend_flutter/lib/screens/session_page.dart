@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'audio_call_page.dart';
+import 'chat_page.dart';
 
 class SessionPage extends StatelessWidget {
   const SessionPage({super.key});
@@ -10,80 +12,73 @@ class SessionPage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Therapy Sessions"),
-          centerTitle: true,
           bottom: const TabBar(
             tabs: [
-              Tab(text: "AI Guided", icon: Icon(Icons.auto_awesome)),
-              Tab(text: "Psychiatrists", icon: Icon(Icons.person_search)),
+              Tab(text: "AI Guided", icon: Icon(Icons.psychology_outlined)),
+              Tab(text: "Human Specialist", icon: Icon(Icons.record_voice_over_outlined)),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            _buildAiTab(),
-            _buildHumanTab(),
+            _buildAiTab(context),
+            _buildHumanTab(context),
           ],
         ),
       ),
     );
   }
 
-  // --- AI SESSIONS TAB ---
-  Widget _buildAiTab() {
-    final aiSessions = [
-      {"title": "Anxiety Relief", "duration": "10 min", "icon": Icons.air},
-      {"title": "Deep Sleep", "duration": "15 min", "icon": Icons.bedtime},
-      {"title": "Focus & Clarity", "duration": "5 min", "icon": Icons.self_improvement},
-    ];
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: aiSessions.length,
-      itemBuilder: (context, index) {
-        final session = aiSessions[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.teal.withOpacity(0.1),
-              child: Icon(session['icon'] as IconData, color: Colors.teal),
-            ),
-            title: Text(session['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("Duration: ${session['duration']}"),
-            trailing: const Icon(Icons.play_circle_fill, color: Colors.teal, size: 30),
-            onTap: () {
-              // Start AI Session logic
-            },
+  Widget _buildAiTab(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.auto_awesome, size: 80, color: Colors.teal),
+          const SizedBox(height: 20),
+          const Text("Instant AI Session", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+            child: Text("Start a private, guided conversation with our healer model.", textAlign: TextAlign.center),
           ),
-        );
-      },
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatPage()));
+            },
+            child: const Text("Start AI Chat"),
+          )
+        ],
+      ),
     );
   }
 
-  // --- HUMAN PSYCHIATRISTS TAB ---
-  Widget _buildHumanTab() {
-    final docs = [
-      {"name": "Dr. Mullat A.", "specialty": "Cognitive Behavioral", "rating": "4.9"},
-      {"name": "Dr. Ephrem A.", "specialty": "Stress Management", "rating": "4.8"},
-      {"name": "Dr. Biniyam S.", "specialty": "Trauma Specialist", "rating": "5.0"},
+  Widget _buildHumanTab(BuildContext context) {
+    final specialists = [
+      {"name": "Dr. Anonymous 1", "specialty": "Anxiety & Stress"},
+      {"name": "Dr. Anonymous 2", "specialty": "Sleep & Depression"},
     ];
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: docs.length,
+      itemCount: specialists.length,
       itemBuilder: (context, index) {
-        final doc = docs[index];
         return Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text(doc['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text("${doc['specialty']} • ⭐ ${doc['rating']}"),
-              trailing: ElevatedButton(
-                onPressed: () {},
-                child: const Text("Book"),
-              ),
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.person)),
+            title: Text(specialists[index]['name']!),
+            subtitle: Text(specialists[index]['specialty']!),
+            trailing: IconButton(
+              icon: const Icon(Icons.phone_in_talk, color: Colors.teal),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AudioCallPage(roomName: "secure-session-101"),
+                  ),
+                );
+              },
             ),
           ),
         );
