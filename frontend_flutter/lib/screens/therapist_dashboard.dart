@@ -1,0 +1,94 @@
+import 'package:flutter/material.dart';
+import 'session_page.dart';
+import 'home_page.dart'; // CRITICAL: This fixes the "HomePage isn't defined" error
+
+class TherapistDashboard extends StatelessWidget {
+  final String therapistName;
+  final String therapistId;
+
+  const TherapistDashboard({
+    super.key, 
+    required this.therapistName,
+    required this.therapistId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Practitioner Portal"),
+        backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              // We remove 'const' here to allow the dynamic function
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => HomePage(
+                    // Providing a dummy function satisfies the required parameter
+                    onThemeChanged: (val) {}, 
+                    isDarkMode: Theme.of(context).brightness == Brightness.dark,
+                  ),
+                ),
+                (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.account_circle, size: 80, color: Colors.teal),
+              const SizedBox(height: 10),
+              Text(
+                "Dr. $therapistName", 
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+              ),
+              const SizedBox(height: 40),
+              _buildDashboardCard(
+                context,
+                title: "Session Requests",
+                icon: Icons.ring_volume,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SessionPage(
+                        isTherapistView: true,
+                        therapistId: therapistId,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard(BuildContext context, {
+    required String title, 
+    required IconData icon, 
+    required VoidCallback onTap
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        elevation: 4,
+        child: ListTile(
+          leading: Icon(icon, color: Colors.teal),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        ),
+      ),
+    );
+  }
+}
