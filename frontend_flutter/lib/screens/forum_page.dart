@@ -26,23 +26,20 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text("Community Hub", style: TextStyle(fontWeight: FontWeight.bold)),
-        elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(110),
           child: Column(
             children: [
-              // 1. Search Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
                   decoration: InputDecoration(
-                    hintText: "Search discussions or groups...",
+                    hintText: "Search discussions...",
                     prefixIcon: const Icon(Icons.search),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
@@ -50,17 +47,9 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
                   ),
                 ),
               ),
-              // 2. Tabs: Feed vs Groups
               TabBar(
                 controller: _tabController,
-                labelColor: Colors.teal[800],
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.teal[800],
-                indicatorWeight: 3,
-                tabs: const [
-                  Tab(text: "Global Feed"),
-                  Tab(text: "Support Groups"),
-                ],
+                tabs: const [Tab(text: "Global Feed"), Tab(text: "Support Groups")],
               ),
             ],
           ),
@@ -68,10 +57,7 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildGlobalFeed(),
-          _buildGroupsGrid(),
-        ],
+        children: [_buildGlobalFeed(), _buildGroupsGrid()],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreatePostBottomSheet(context),
@@ -82,16 +68,19 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
     );
   }
 
-  // --- TAB 1: GLOBAL FEED ---
+  // --- 1. GLOBAL FEED (REAL-TIME) ---
   Widget _buildGlobalFeed() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _supabase.from('forum_posts').stream(primaryKey: ['id']).order('created_at'),
+      stream: _supabase.from('forum_posts').stream(primaryKey: ['id']).order('created_at', ascending: false),
       builder: (context, snapshot) {
+        if (snapshot.hasError) return const Center(child: Text("Error loading posts"));
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
         
         final posts = snapshot.data!
             .where((p) => p['title'].toString().toLowerCase().contains(_searchQuery))
             .toList();
+
+        if (posts.isEmpty) return const Center(child: Text("No discussions found."));
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -102,10 +91,10 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
     );
   }
 
+  // --- 2. POST CARD UI ---
   Widget _postCard(Map<String, dynamic> post) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0.5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -120,25 +109,39 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(post['alias'] ?? "Anonymous", style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text("2h ago • ${post['category']}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    Text(post['category'] ?? "General", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                   ],
                 ),
-                const Spacer(),
-                const Icon(Icons.more_vert, color: Colors.grey),
               ],
             ),
             const SizedBox(height: 12),
             Text(post['title'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(post['content'] ?? "", maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black87)),
+            Text(post['content'] ?? "", style: const TextStyle(color: Colors.black87)),
             const SizedBox(height: 16),
             Row(
               children: [
-                _interactionBtn(Icons.thumb_up_outlined, "${post['likes'] ?? 0}"),
+                // LIKE BUTTON
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.thumb_up_outlined, size: 20, color: Colors.teal),
+                      onPressed: () async {
+                        await _supabase.from('forum_posts').update({
+                          'likes': (post['likes'] ?? 0) + 1
+                        }).eq('id', post['id']);
+                      },
+                    ),
+                    Text("${post['likes'] ?? 0}"),
+                  ],
+                ),
                 const SizedBox(width: 20),
-                _interactionBtn(Icons.chat_bubble_outline, "12"),
-                const Spacer(),
-                const Icon(Icons.share_outlined, size: 20, color: Colors.grey),
+                // COMMENT BUTTON
+                TextButton.icon(
+                  icon: const Icon(Icons.chat_bubble_outline, size: 20, color: Colors.teal),
+                  label: const Text("Comments", style: TextStyle(color: Colors.teal)),
+                  onPressed: () => _showCommentsModal(context, post['id']),
+                ),
               ],
             )
           ],
@@ -147,68 +150,124 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _interactionBtn(IconData icon, String count) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.teal[700]),
-        const SizedBox(width: 6),
-        Text(count, style: const TextStyle(fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
+  // --- 3. COMMENTS MODAL (REAL-TIME) ---
+  void _showCommentsModal(BuildContext context, String postId) {
+    final commentController = TextEditingController();
 
-  // --- TAB 2: GROUPS GRID ---
-  Widget _buildGroupsGrid() {
-    final groups = [
-      {"name": "Anxiety Warriors", "members": "1.2k", "icon": Icons.shield_moon},
-      {"name": "Midnight Sleepers", "members": "800", "icon": Icons.dark_mode},
-      {"name": "Student Life", "members": "2.5k", "icon": Icons.school},
-      {"name": "Daily Gratitude", "members": "5k", "icon": Icons.favorite},
-    ];
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.9,
-      ),
-      itemCount: groups.length,
-      itemBuilder: (context, index) {
-        final group = groups[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-          ),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+          height: MediaQuery.of(context).size.height * 0.7,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(group['icon'] as IconData, size: 40, color: Colors.teal),
-              const SizedBox(height: 12),
-              Text(group['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text("${group['members']} members", style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal[50],
-                  foregroundColor: Colors.teal[900],
-                  elevation: 0,
-                  shape: StadiumBorder(),
+              const Text("Discussion", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Divider(),
+              Expanded(
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _supabase
+                      .from('comments')
+                      .stream(primaryKey: ['id'])
+                      .eq('post_id', postId)
+                      .order('created_at', ascending: true),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                    final comments = snapshot.data!;
+                    if (comments.isEmpty) return const Center(child: Text("No comments yet. Be the first!"));
+                    
+                    return ListView.builder(
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) => ListTile(
+                        leading: const CircleAvatar(child: Icon(Icons.person, size: 16)),
+                        title: Text(comments[index]['alias'] ?? "Anonymous", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        subtitle: Text(comments[index]['content']),
+                      ),
+                    );
+                  },
                 ),
-                child: const Text("Join"),
-              )
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: commentController,
+                        decoration: InputDecoration(
+                          hintText: "Write a comment...",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send, color: Colors.teal),
+                      onPressed: () async {
+                        if (commentController.text.isNotEmpty) {
+                          await _supabase.from('comments').insert({
+                            'post_id': postId,
+                            'content': commentController.text,
+                            'alias': 'Anonymous',
+                          });
+                          commentController.clear();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
+  // --- 4. CREATE POST BOTTOM SHEET ---
   void _showCreatePostBottomSheet(BuildContext context) {
-    // ... logic for bottom sheet ...
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+    final aliasController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Start a Discussion", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            TextField(controller: aliasController, decoration: const InputDecoration(labelText: "Display Alias (e.g. Hopeful123)")),
+            TextField(controller: titleController, decoration: const InputDecoration(labelText: "Topic Title")),
+            TextField(controller: contentController, decoration: const InputDecoration(labelText: "Details"), maxLines: 3),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, minimumSize: const Size(double.infinity, 50)),
+              onPressed: () async {
+                if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
+                  await _supabase.from('forum_posts').insert({
+                    'title': titleController.text,
+                    'content': contentController.text,
+                    'alias': aliasController.text.isEmpty ? 'Anonymous' : aliasController.text,
+                    'category': 'General',
+                  });
+                  if (mounted) Navigator.pop(context);
+                }
+              },
+              child: const Text("Post to Community", style: TextStyle(color: Colors.white)),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroupsGrid() {
+    return const Center(child: Text("Support Groups Coming Soon"));
   }
 }

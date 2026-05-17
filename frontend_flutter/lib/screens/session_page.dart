@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart'; // 1. Import the uuid package
+import 'package:uuid/uuid.dart';
 import 'audio_call_page.dart';
 import 'chat_page.dart';
 
@@ -20,33 +20,39 @@ class SessionPage extends StatefulWidget {
 
 class _SessionPageState extends State<SessionPage> {
   final _supabase = Supabase.instance.client;
-  final _uuid = const Uuid(); // 2. Initialize UUID generator
+  final _uuid = const Uuid();
 
   @override
   Widget build(BuildContext context) {
-    return widget.isTherapistView 
-        ? _buildTherapistRequestList() 
+    return widget.isTherapistView
+        ? _buildTherapistRequestList()
         : _buildPatientTabUI();
   }
 
-  // --- 1. THERAPIST VIEW ---
+  // ─── THERAPIST VIEW ───────────────────────────────────────────────────────
+
   Widget _buildTherapistRequestList() {
     return Scaffold(
-      appBar: AppBar(title: const Text("Incoming Session Requests"), centerTitle: true),
+      appBar: AppBar(
+          title: const Text("Incoming Session Requests"), centerTitle: true),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _supabase
             .from('sessions')
             .stream(primaryKey: ['id'])
-            .map((List<Map<String, dynamic>> data) {
-              return data.where((session) =>
-                session['therapist_id'].toString() == widget.therapistId &&
-                session['status'] == 'pending'
-              ).toList();
-            }),
+            .map((data) => data
+                .where((s) =>
+                    s['therapist_id'].toString().trim() ==
+                        widget.therapistId?.toString().trim() &&
+                    s['status'] == 'pending')
+                .toList()),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
           final requests = snapshot.data!;
           if (requests.isEmpty) {
             return const Center(
@@ -66,12 +72,17 @@ class _SessionPageState extends State<SessionPage> {
             itemCount: requests.length,
             itemBuilder: (context, index) {
               final req = requests[index];
+
+           
+              final roomName = req['room_name']?.toString().trim() ?? '';
+
               return Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15)),
                 child: ListTile(
                   title: Text(req['patient_name'] ?? "Anonymous Patient"),
                   trailing: ElevatedButton(
-                    onPressed: () => _handleJoinSession(req['id'].toString(), "Therapist"),
+                    onPressed: () => _therapistJoin(req['id'].toString(), roomName),
                     child: const Text("Accept"),
                   ),
                 ),
@@ -83,7 +94,8 @@ class _SessionPageState extends State<SessionPage> {
     );
   }
 
-  // --- 2. PATIENT VIEW ---
+ 
+
   Widget _buildPatientTabUI() {
     return DefaultTabController(
       length: 2,
@@ -92,12 +104,17 @@ class _SessionPageState extends State<SessionPage> {
           title: const Text("Therapy Sessions"),
           bottom: const TabBar(
             tabs: [
-              Tab(text: "AI Guided", icon: Icon(Icons.psychology_outlined)),
-              Tab(text: "Human Specialist", icon: Icon(Icons.record_voice_over_outlined)),
+              Tab(
+                  text: "AI Guided",
+                  icon: Icon(Icons.psychology_outlined)),
+              Tab(
+                  text: "Human Specialist",
+                  icon: Icon(Icons.record_voice_over_outlined)),
             ],
           ),
         ),
-        body: TabBarView(children: [_buildAiTab(), _buildHumanTab()]),
+        body: TabBarView(
+            children: [_buildAiTab(), _buildHumanTab()]),
       ),
     );
   }
@@ -105,7 +122,8 @@ class _SessionPageState extends State<SessionPage> {
   Widget _buildAiTab() {
     return Center(
       child: ElevatedButton(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatPage())),
+        onPressed: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const ChatPage())),
         child: const Text("Start AI Chat"),
       ),
     );
@@ -115,7 +133,9 @@ class _SessionPageState extends State<SessionPage> {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _supabase.from('therapists').stream(primaryKey: ['id']),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final therapists = snapshot.data!;
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -124,10 +144,11 @@ class _SessionPageState extends State<SessionPage> {
             final doc = therapists[index];
             return Card(
               child: ListTile(
-                title: Text(" ${doc['name']}"),
+                title: Text(doc['name']),
                 trailing: IconButton(
                   icon: const Icon(Icons.phone_in_talk, color: Colors.teal),
-                  onPressed: () => _createSessionRequest(doc['id'].toString(), doc['name']),
+                  onPressed: () => _createSessionRequest(
+                      doc['id'].toString().trim(), doc['name']),
                 ),
               ),
             );
@@ -137,22 +158,31 @@ class _SessionPageState extends State<SessionPage> {
     );
   }
 
-  // --- LOGIC ---
+  
 
-  Future<void> _createSessionRequest(String docId, String docName) async {
-    // 3. GENERATE A PROPER UUID HERE
-    final sessionId = _uuid.v4(); 
+  Future<void> _createSessionRequest(
+      String therapistId, String therapistName) async {
+    final sessionId = _uuid.v4().trim().toLowerCase();
+
+
+    final roomName = 'session-$sessionId';
+
     
+    final patientName =
+        _supabase.auth.currentUser?.userMetadata?['full_name'] as String? ??
+            'Patient';
+
     try {
       await _supabase.from('sessions').insert({
         'id': sessionId,
-        'patient_name': 'Nahom', 
-        'therapist_id': docId,
+        'room_name': roomName,   
+        'patient_name': patientName,
+        'therapist_id': therapistId,
         'status': 'pending',
       });
 
       if (mounted) {
-        _handleJoinSession(sessionId, "Patient");
+        _navigateToCall(roomName: roomName, userName: patientName);
       }
     } catch (e) {
       debugPrint("SUPABASE ERROR: $e");
@@ -164,25 +194,32 @@ class _SessionPageState extends State<SessionPage> {
     }
   }
 
-  void _handleJoinSession(String sessionId, String role) async {
+  Future<void> _therapistJoin(String sessionId, String roomName) async {
     try {
-      if (role == "Therapist") {
-        await _supabase.from('sessions').update({'status': 'active'}).eq('id', sessionId);
-      }
+      await _supabase
+          .from('sessions')
+          .update({'status': 'active'})
+          .eq('id', sessionId);
 
       if (!mounted) return;
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AudioCallPage(
-            roomName: "secure-session-$sessionId",
-            userName: role,
-          ),
-        ),
-      );
+      
+      _navigateToCall(roomName: roomName, userName: 'Therapist');
     } catch (e) {
       debugPrint("JOIN ERROR: $e");
     }
+  }
+
+  void _navigateToCall(
+      {required String roomName, required String userName}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AudioCallPage(
+          roomName: roomName,
+          userName: userName,
+        ),
+      ),
+    );
   }
 }

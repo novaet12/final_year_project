@@ -3,9 +3,7 @@ import 'package:jitsi_meet_flutter_sdk/jitsi_meet_flutter_sdk.dart';
 
 class AudioCallPage extends StatelessWidget {
   final String roomName;
-  final String userName; // Define the variable
-
-  // Update the constructor to include userName
+  final String userName; 
   const AudioCallPage({
     super.key,
     required this.roomName,
@@ -22,7 +20,7 @@ class AudioCallPage extends StatelessWidget {
         "startWithVideoMuted": true,
       },
       userInfo: JitsiMeetUserInfo(
-        displayName: userName, // Use it here
+        displayName: userName,
       ),
     );
     jitsiMeet.join(options);

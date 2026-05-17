@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'session_page.dart';
-import 'home_page.dart'; // CRITICAL: This fixes the "HomePage isn't defined" error
+import 'home_page.dart'; 
 
 class TherapistDashboard extends StatelessWidget {
   final String therapistName;
@@ -22,11 +22,11 @@ class TherapistDashboard extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              // We remove 'const' here to allow the dynamic function
+              
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
                   builder: (context) => HomePage(
-                    // Providing a dummy function satisfies the required parameter
+                    
                     onThemeChanged: (val) {}, 
                     isDarkMode: Theme.of(context).brightness == Brightness.dark,
                   ),
@@ -46,7 +46,7 @@ class TherapistDashboard extends StatelessWidget {
               const Icon(Icons.account_circle, size: 80, color: Colors.teal),
               const SizedBox(height: 10),
               Text(
-                "Dr. $therapistName", 
+                " $therapistName", 
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
               ),
               const SizedBox(height: 40),
