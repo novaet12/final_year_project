@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'session_page.dart';
-import 'home_page.dart'; 
+import 'home_page.dart';
 
 class TherapistDashboard extends StatelessWidget {
   final String therapistName;
   final String therapistId;
 
   const TherapistDashboard({
-    super.key, 
+    super.key,
     required this.therapistName,
     required this.therapistId,
   });
@@ -22,12 +22,10 @@ class TherapistDashboard extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(
                   builder: (context) => HomePage(
-                    
-                    onThemeChanged: (val) {}, 
+                    onThemeChanged: (val) {},
                     isDarkMode: Theme.of(context).brightness == Brightness.dark,
                   ),
                 ),
@@ -46,21 +44,20 @@ class TherapistDashboard extends StatelessWidget {
               const Icon(Icons.account_circle, size: 80, color: Colors.teal),
               const SizedBox(height: 10),
               Text(
-                " $therapistName", 
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+                therapistName,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 40),
               _buildDashboardCard(
                 context,
-                title: "Session Requests",
+                title: "Join Session Room",
                 icon: Icons.ring_volume,
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => SessionPage(
+                      builder: (context) => const SessionPage(
                         isTherapistView: true,
-                        therapistId: therapistId,
                       ),
                     ),
                   );
@@ -74,9 +71,9 @@ class TherapistDashboard extends StatelessWidget {
   }
 
   Widget _buildDashboardCard(BuildContext context, {
-    required String title, 
-    required IconData icon, 
-    required VoidCallback onTap
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
