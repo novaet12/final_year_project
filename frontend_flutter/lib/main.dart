@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_flutter/screens/home_page.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // 1. Add this import
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 
 void main() async {
-  // 2. Ensure Flutter is initialized before calling Supabase
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 3. Initialize Supabase with your project credentials
+  
   await Supabase.initialize(
     url: 'https://mhoezzqlqkdrbotgvraa.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ob2V6enFscWtkcmJvdGd2cmFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMzE2ODAsImV4cCI6MjA4ODkwNzY4MH0.GmAj_REdm80Mvazxc0cKkiYrTHCI2oqwZ2Qjn3xkQ4Q',

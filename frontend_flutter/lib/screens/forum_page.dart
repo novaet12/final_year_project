@@ -68,7 +68,7 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
     );
   }
 
-  // --- 1. GLOBAL FEED (REAL-TIME) ---
+  
   Widget _buildGlobalFeed() {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _supabase.from('forum_posts').stream(primaryKey: ['id']).order('created_at', ascending: false),
@@ -91,7 +91,7 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
     );
   }
 
-  // --- 2. POST CARD UI ---
+
   Widget _postCard(Map<String, dynamic> post) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -121,7 +121,7 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
             const SizedBox(height: 16),
             Row(
               children: [
-                // LIKE BUTTON
+                
                 Row(
                   children: [
                     IconButton(
@@ -136,7 +136,7 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
                   ],
                 ),
                 const SizedBox(width: 20),
-                // COMMENT BUTTON
+               
                 TextButton.icon(
                   icon: const Icon(Icons.chat_bubble_outline, size: 20, color: Colors.teal),
                   label: const Text("Comments", style: TextStyle(color: Colors.teal)),
@@ -150,7 +150,6 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
     );
   }
 
-  // --- 3. COMMENTS MODAL (REAL-TIME) ---
   void _showCommentsModal(BuildContext context, String postId) {
     final commentController = TextEditingController();
 
@@ -225,7 +224,6 @@ class _ForumPageState extends State<ForumPage> with SingleTickerProviderStateMix
     );
   }
 
-  // --- 4. CREATE POST BOTTOM SHEET ---
   void _showCreatePostBottomSheet(BuildContext context) {
     final titleController = TextEditingController();
     final contentController = TextEditingController();

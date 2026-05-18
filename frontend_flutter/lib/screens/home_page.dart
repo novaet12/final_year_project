@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-// Your Page Imports
 import 'chat_page.dart';
 import 'settings_page.dart';
 import 'session_page.dart';
@@ -33,7 +31,6 @@ class _HomePageState extends State<HomePage> {
     _setupDailyQuotes();
   }
 
-  // Simplified: Just fetch the quote for the UI
   Future<void> _setupDailyQuotes() async {
     try {
       final List<dynamic> allQuotes = await _supabase.from('quotes').select();
